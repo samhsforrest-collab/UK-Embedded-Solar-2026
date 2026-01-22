@@ -17,6 +17,10 @@ pvl = PVLive(
     ssl_verify=True, # Optionally disable SSL certificate verification (not advised!)
     domain_url="api.pvlive.uk", # Optionally switch between the prod and FOF APIs
 )
+# Set GSP and timeframes to call functions
+start = datetime(2025, 1, 1, 0, 0, tzinfo=pytz.UTC)
+end = datetime(2025, 12, 31, 23, 30, tzinfo=pytz.UTC)
+gsp_id = 124  # select GSP ID to extract data for - later we will ue table of names for this
 
 def load_mwp(region="gsp", include_history=True):
     """
