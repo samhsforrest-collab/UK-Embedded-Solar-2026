@@ -307,7 +307,7 @@ def fetch_weather_for_generation_df(gen_df,
 
     return df
 
-def merge_generation_with_weather(generation_df, weather_df):
+def merge_generation_with_weather(merged_df, weather_df):
     """
     Merge generation_and_capacity_single_gsp dataframe with weather_df.
     Only brings generation_mw and capacity_mwp from generation_df.
@@ -319,7 +319,7 @@ def merge_generation_with_weather(generation_df, weather_df):
     """
     # Select only required columns
     cols = ['year', 'month', 'day', 'hour', 'generation_mw', 'capacity_mwp']
-    gen = generation_and_capacity_single_gsp[cols].copy()
+    gen = merged_df[cols].copy()
     grouped = gen.groupby(['year', 'month', 'day', 'hour'], as_index=False)[['generation_mw', 'capacity_mwp']].mean() # Aggregate to hourly by mean
     weather = weather_df.copy().reset_index()  # bring datetime index to column named 'date'
     merged = weather.merge(grouped, on=['year', 'month', 'day', 'hour'], how='left') # Merge with weather_df on year,month,day,hour
