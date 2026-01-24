@@ -5,9 +5,10 @@ from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
 from datetime import datetime
 import pytz
+from streamlit_app import validate_date_range
 
 # Pull functions and associated dataframes from pvlive_openmeteo
-from pvlive_openmeteo_api_functions import (
+from python_files.functions import (
     load_mwp,
     load_gsp,
     merge_gsp_location,
@@ -21,8 +22,8 @@ from pvlive_openmeteo_api_functions import (
 )
 
 # Set GSP and timeframes to call functions
-start = datetime(2025, 1, 1, 0, 0, tzinfo=pytz.UTC) # set later via table
-end = datetime(2025, 12, 31, 23, 30, tzinfo=pytz.UTC) # set later via table
+start = start
+end = end
 gsp_id = 124  # select GSP ID to extract data for - later we will use table of names for this
 
 # Call functions and create variables holidng dataframes for use in the app
@@ -36,7 +37,6 @@ capacity_data_single_gsp = get_capacity_data_single_gsp(gsp_id, merged_df) # add
 generation_and_capacity_single_gsp = add_capacity_to_generation(generation_df, capacity_data_single_gsp) # merged capacity and generation same time-series single gsp
 weather_df = fetch_weather_for_generation_df(generation_and_capacity_single_gsp) # weather df for the selected gsp and time period
 gen_weather_merged_df = merge_generation_with_weather(generation_and_capacity_single_gsp, weather_df)
-
 
 
 # function for extracting the winning XGBoost model 
