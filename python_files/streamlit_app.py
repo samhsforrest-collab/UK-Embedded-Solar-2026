@@ -52,7 +52,7 @@ mwp_df = load_mwp() # loading the capacity df
 gsp_df = load_gsp() # loading the gsp locations df
 merged_df = merge_gsp_location(mwp_df, gsp_df) # merge capacity growth and locations
 gsp_locations_list = gsp_locations(merged_df) # merge capacity and locations without capacity growth over time
-
+capacity_growth_all_gsps = wide_cumul_capacity(merged_df) # wide capacity growth df for all time and all gsps
 #=============================================================================================
 # Extra Functions END
 
@@ -437,9 +437,35 @@ with tab1:
     gsp_region = gsp_locations_list[gsp_locations_list['gsp_id'].astype(int) == int(gsp_id)].iloc[0]['GSP_region']
     st.subheader(f"{gsp_region} GSP: {start_date} - {end_date}")
     st.markdown("---")
-    
+    last_row = capacity_growth_all_gsps.iloc[-1]  # Last row values
+
+    # MAP OF CAPACITY INSTALLED START
+    # Create a Capacity DataFrame where each GSP gets the last capacity values.
+    latest_capacity_dict = {
+        'GSPs': gsp_locations_list['GSPs'],  # GSP identifiers
+        'Latest Installed Capacity (MW)': [last_row[gsp] for gsp in gsp_locations_list['GSPs']]  # GSPs must match column names
+    }
+    latest_capacity_df = pd.DataFrame(latest_capacity_dict)
+    gsp_locations_with_capacity = gsp_locations_list.merge(latest_capacity_df, on='GSPs', how='left')
+
+    # Create a scatter map with sizes based on Latest Installed Capacity
+    fig = px.scatter_map(
+        gsp_locations_with_capacity,
+        lat="gsp_lat",
+        lon="gsp_lon",
+        hover_name="region_name",  # Show region name on hover
+        size="Latest Installed Capacity (MW)",  # Scale point size based on this capacity
+        size_max=20,  # Max size for points
+        title="GSP Locations with Latest Installed Capacity",
+        map_style="open-street-map"
+    )
+
+    # Show the figure in Streamlit
+    st.plotly_chart(fig)
+    # MAP OF CAPACITY INSTALLED START
+
     # FULL SOLAR PLOT START 
-    
+    # create generation prediction values
     X_full = pd.concat([X_train, X_test]).sort_index() # Combine X_train and X_test to predict for the whole dataset
     y_index = X_full.index
     y_pred_full = pipeline.predict(X_full)  # Get predictions from the fitted pipeline (preserves order of X_full)
@@ -559,4 +585,4 @@ with tab2:
 
 # Footer
 st.markdown("---")
-st.markdown("**©** Copyright protected by The Big Solar Plot est. 2027 (time-travel is the surest way to be ahead of your time)")
+st.markdown("**Contact samhsforrest@gmail.com for any questions)")
