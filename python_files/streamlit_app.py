@@ -96,11 +96,15 @@ else:
 selected_row = gsp_locations_list[gsp_locations_list['GSP_region'] == selected_gsp].reset_index(drop=True)
 
 # Create a sidebar selector for the dates to choose from
+# Create the minimum start date
+min_start_date = datetime(2023, 1, 1).date()  # Converts it to a date object
+min_end_date = datetime(2023, 2, 1).date()  # Converts it to a date object
+
 start_date = st.sidebar.date_input(
     "Start Date",  # Label for the date input
     value=datetime.today(),  # Default value set to today's date
-    min_value=None,  # Minimum allowed date
-    max_value=None,  # Maximum allowed date
+    min_value=min_start_date,  # Minimum allowed date
+    max_value=datetime.today().date(),  # Maximum allowed date
     format="YYYY/MM/DD",  # Date format
     disabled=False,  # Whether the input should be disabled
     label_visibility="visible",  # Visibility of the label
@@ -109,8 +113,8 @@ start_date = st.sidebar.date_input(
 end_date = st.sidebar.date_input(
     "End Date",  # Label for the date input
     value=datetime.today(),  # Default value set to today's date
-    min_value=None,  # Minimum allowed date
-    max_value=None,  # Maximum allowed date
+    min_value=min_end_date,  # Minimum allowed date
+    max_value=datetime.today().date(),  # Maximum allowed date
     format="YYYY/MM/DD",  # Date format
     disabled=False,  # Whether the input should be disabled
     label_visibility="visible",  # Visibility of the label
@@ -417,7 +421,7 @@ def prepare_and_fit_xgboost(df, target_col='generation_mw', test_size=0.2, rando
 pipeline, X_train, X_test, y_train, y_test = prepare_and_fit_xgboost(gen_weather_merged_df)
 
 #=============================================================================================
-# Create Variables END
+# CREATE MAIN DATAFRAMES - FEATURE ENGINEERING - END
 
 # Create Tabs START
 #=============================================================================================
@@ -428,32 +432,24 @@ tab1, tab2 = st.tabs(["Selected GSP Stats", "UK Embedded Solar Capacity"])
 # Tab 1 START
 #=============================================================================================
 with tab1:
-    # Fetch generation data
 
     # Show Results of Selected GSP
     gsp_region = gsp_locations_list[gsp_locations_list['gsp_id'].astype(int) == int(gsp_id)].iloc[0]['GSP_region']
-    st.subheader(f"Showing Results for GSP: {gsp_region}")
-
-    # Assume: pipeline is fitted, X_train/X_test are the feature DataFrames used for training/testing,
-    # and gen_weather_merged_df contains the 'generation_mw' actuals with a datetime index.
-
-    # Combine X_train and X_test to predict for the whole dataset you're evaluating
-    X_full = pd.concat([X_train, X_test]).sort_index()
+    st.subheader(f"{gsp_region} GSP: {start_date} - {end_date}")
+    st.markdown("---")
+    
+    # FULL SOLAR PLOT START 
+    
+    X_full = pd.concat([X_train, X_test]).sort_index() # Combine X_train and X_test to predict for the whole dataset
     y_index = X_full.index
+    y_pred_full = pipeline.predict(X_full)  # Get predictions from the fitted pipeline (preserves order of X_full)
 
-    # Get predictions from the fitted pipeline (preserves order of X_full)
-    y_pred_full = pipeline.predict(X_full)
-
-    # Prepare a copy of the original df for plotting (avoid mutation)
-    df_plot = gen_weather_merged_df.copy()
+    df_plot = gen_weather_merged_df.copy() # copy to avoid mutation
     df_plot['datetime_gmt'] = pd.to_datetime(df_plot.index)
-
-    # Create a column aligned to the feature index with predictions (NaN elsewhere)
-    df_plot['pred_generation_mw'] = np.nan
+    df_plot['pred_generation_mw'] = np.nan # Create a column aligned to the feature index with predictions (NaN elsewhere)
     df_plot.loc[y_index, 'pred_generation_mw'] = y_pred_full
 
-    # Create Plotly figure with the same radiation traces plus actual and predicted generation
-    fig = go.Figure()
+    fig = go.Figure()    # Create Plotly figure
 
     # Actual generation on secondary y-axis
     fig.add_trace(go.Scatter(
@@ -491,14 +487,18 @@ with tab1:
         height=600
     )
 
-    st.plotly_chart(fig)
+    st.plotly_chart(fig) # show fig
+    # FULL SOLAR PLOT END
 
     # METRICS TABLE START
 
     # Actual generation vs. predicted gernation for gsp in selected period
+    # variables metrics
+    
     gen_series = pd.to_numeric(gen_weather_merged_df['generation_mw'], errors='coerce')
     total_generation_mw = float(gen_series.sum())
     total_predicted_generation_mw = float(np.nansum(y_pred_full))
+
     if total_generation_mw == 0:
         percent_variance = None  # or float('inf') if you prefer
     else:
@@ -507,50 +507,41 @@ with tab1:
     cap_series = pd.to_numeric(gen_weather_merged_df['capacity_mwp'], errors='coerce')
     last_capacity_mwp = float(cap_series.iloc[-50])
 
-    # Top-line KPI cards
+    # Metrics cards
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Generation (MW)", f"{total_generation_mw:.2f}")
     col2.metric("Predicted Generation (MW)", f"{total_predicted_generation_mw:.2f}")
     col3.metric("Variance (%)", f"{percent_variance:.2f}%")
     col4.metric("Latest Installed Capacity (MW)", f"{last_capacity_mwp:.2f}")
 
-    with st.expander("Show capacity data"):
-        st.dataframe(capacity_data_single_gsp)
-    with st.expander("Show gen and capacity data"):
-        st.dataframe(generation_and_capacity_single_gsp)
-    with st.expander("Show capacity data"):
-        st.dataframe(capacity_data_single_gsp)
-    with st.expander("Show gen and capacity data"):
+    with st.expander("Show generation and capacity data"):
         st.dataframe(generation_and_capacity_single_gsp)
 
     # METRICS END
 
-    df_hour = weather_df.reset_index().groupby('hour')['shortwave_radiation'].agg(['median','quantile']).reset_index()
-    # better: compute percentiles
-    agg = weather_df.reset_index().groupby('hour')['shortwave_radiation'].agg(['median', lambda s: s.quantile(0.1), lambda s: s.quantile(0.9)])
-    agg.columns = ['median','p10','p90']
-    fig = px.line(agg, x=agg.index, y='median', labels={'x':'Hour','median':'Shortwave (W/m²)'})
-    fig.add_traces([
-        go.Scatter(x=agg.index, y=agg['p90'], fill=None, line=dict(color='lightgray'), showlegend=False),
-        go.Scatter(x=agg.index, y=agg['p10'], fill='tonexty', fillcolor='rgba(255,165,0,0.15)', line=dict(color='lightgray'), showlegend=False)
-    ])
-    st.plotly_chart(fig)
+    # HEATMAP START
 
-    df = gen_weather_merged_df.reset_index().dropna(subset=['shortwave_radiation','generation_mw'])
-    fig = px.scatter(df, x='shortwave_radiation_instant', y='generation_mw',
-                    labels={'shortwave_radiation':'Shortwave (W/m²)','generation_mw':'Generation (MW)'},
-                    opacity=0.6)
+    # Calculate the difference between predicted and actual generation
+    df_plot['difference'] = df_plot['pred_generation_mw'] - df_plot['generation_mw']
 
-    # fit linear regression with numpy
-    x = df['shortwave_radiation'].to_numpy()
-    y = df['generation_mw'].to_numpy()
-    if len(x) > 1:
-        m, b = np.polyfit(x, y, 1)
-        x_line = np.linspace(x.min(), x.max(), 100)
-        y_line = m * x_line + b
-        fig.add_trace(go.Line(x=x_line, y=y_line, name='Linear fit', line=dict(color='red')))
+    # Reset index for heatmap plotting
+    heatmap_data = df_plot.reset_index()
+
+    fig = px.density_heatmap(heatmap_data, 
+                            x='datetime_gmt', 
+                            y='difference',
+                            z='difference',
+                            color_continuous_scale='RdBu',
+                            title='Heatmap of Differences (Predicted - Actual)')
+
+    fig.update_layout(
+        xaxis_title='Date and Time',
+        yaxis_title='Difference in Generation (MW)',
+        height=600
+    )
 
     st.plotly_chart(fig)
+    # HEATMAP END
 
 #=============================================================================================
 # Tab 1 END
