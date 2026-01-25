@@ -520,7 +520,7 @@ with tab1:
         st.dataframe(generation_and_capacity_single_gsp)
 
     # METRICS END
-
+    st.markdown("---")
     # MONTH SOLAR PLOT
     # align into gen_weather_merged_df
     gen_weather_merged_df['pred_generation_mw'] = np.nan
@@ -747,7 +747,13 @@ Solution: heavily weight the GSPs solar capacity feature when fine-tuning of the
 #=============================================================================================
 with tab2:
 
-    st.subheader("Selected GSP Stats")
+    # Headings
+    st.subheader("UK Embedded Solar by GSP")
+    
+    # Capacity and GSP counts
+    gsp_count = len([c for c in capacity_growth_all_gsps.columns if c != 'install_month']) # Count columns excluding 'install_month' (index is not a column)
+    total_solar_capacity = int(capacity_growth_all_gsps.iloc[-1].iloc[2:].sum()/1000)  # Sum values in the last row from the 3rd column (index 2) onwards
+    st.info(f"This dashboard plots {gsp_count} GSPs with a combined total of {total_solar_capacity}GWp solar capacity")
 
     # MAP OF CAPACITY INSTALLED START
     # Create a Capacity DataFrame where each GSP gets the last capacity values.
@@ -766,7 +772,7 @@ with tab2:
         hover_name="region_name",  # Show region name on hover
         size="Latest Installed Capacity (MW)",  # Scale point size based on this capacity
         size_max=20,  # Max size for points
-        title="GSP Locations with Latest Installed Solar Capacity (MWp)",
+        title="GSP Locations showing Latest Installed Solar Capacity (MWp)",
         map_style="open-street-map",
         hover_data={"Latest Installed Capacity (MW)": ":.0f"}  # format as integer
     )
@@ -787,8 +793,10 @@ with tab2:
         top_n = 50
         top_cols = df[gsp_cols].iloc[-1].nlargest(top_n).index.tolist()
         fig = px.line(df.reset_index(), x='install_month', y=top_cols, title="Cumulative capacity over time by GSP (2010 onwards)")
-        fig.update_layout(showlegend=False, height=550, xaxis_title='Install Month', yaxis_title='MWp')
+        fig.update_traces(hoverinfo='skip')  # remove hover data
+        fig.update_layout(showlegend=False, height=550, xaxis_title='Install Month', yaxis_title='Cumulative MWp')
         return fig
+
      # LINE PLOT SHOWING CAPACITY GROWTH END
     
      #  BAR PLOT SHOWING CAPACITY INSTALLED BY YEAR START
