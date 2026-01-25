@@ -764,8 +764,7 @@ with tab2:
     latest_capacity_df = pd.DataFrame(latest_capacity_dict)
     gsp_locations_with_capacity = gsp_locations_list.merge(latest_capacity_df, on='GSPs', how='left')
 
-    # Create a scatter map with sizes based on Latest Installed Capacity
-    fig = px.scatter_map(
+    fig = px.scatter_map( # Create a scatter map with sizes based on Latest Installed Capacity
         gsp_locations_with_capacity,
         lat="gsp_lat",
         lon="gsp_lon",
