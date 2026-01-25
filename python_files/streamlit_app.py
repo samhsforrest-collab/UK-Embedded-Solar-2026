@@ -99,10 +99,12 @@ selected_row = gsp_locations_list[gsp_locations_list['GSP_region'] == selected_g
 # Create the minimum start date
 min_start_date = datetime(2023, 1, 1).date()  # Converts it to a date object
 min_end_date = datetime(2023, 2, 1).date()  # Converts it to a date object
+default_start_date= datetime(2025, 1, 1).date()  # Converts it to a date object
+default_end_date= datetime(2025, 12, 31).date()  # Converts it to a date object
 
 start_date = st.sidebar.date_input(
     "Start Date",  # Label for the date input
-    value=datetime.today(),  # Default value set to today's date
+    value=default_start_date,  # Default start date
     min_value=min_start_date,  # Minimum allowed date
     max_value=datetime.today().date(),  # Maximum allowed date
     format="YYYY/MM/DD",  # Date format
@@ -112,7 +114,7 @@ start_date = st.sidebar.date_input(
 )
 end_date = st.sidebar.date_input(
     "End Date",  # Label for the date input
-    value=datetime.today(),  # Default value set to today's date
+    value=default_end_date,  # Default end date
     min_value=min_end_date,  # Minimum allowed date
     max_value=datetime.today().date(),  # Maximum allowed date
     format="YYYY/MM/DD",  # Date format
@@ -591,7 +593,27 @@ with tab1:
         st.plotly_chart(fig, use_container_width=True)
 
     # Usage:
-    plot_last_month_clustered_gen_vs_irradiance(gen_weather_merged_df)
+    
+        # Layout: first row -> left placeholder, right line plot
+    col1, col2 = st.columns([1,2])  # right column wider
+    with col1:
+        st.markdown("""                 
+**Daily Solar Generation vs. Predictions (last month selected):**
+
+Highlighting the variance between the actual GSP's solar generation and our model's
+predicted generation. We note predictions tend to track irradiance more closely
+than actual generation. Reasons may include: 
+
+1) predictions are based on a single location (and weather conditions) at the GSP, 
+but the solar plants are scattered in multiple locations, and;
+
+2) generation may have been affected by other factors such as grid 
+and/or localised plant faults.
+""")
+    with col2:
+        plot_last_month_clustered_gen_vs_irradiance(gen_weather_merged_df)
+
+    
     # PRIOR MONTH SOLAR PLOT END
 
     def plot_last_day_hourly_gen_vs_irradiance(df, pipeline=None, X_full=None):
@@ -663,8 +685,25 @@ with tab1:
 
         st.plotly_chart(fig, use_container_width=True)
 
-    plot_last_day_hourly_gen_vs_irradiance(gen_weather_merged_df)
+    
+    # Second row -> left bar plot, right placeholder
+    col3, col4 = st.columns([2,1])  # left wider this row
+    with col3:
+        plot_last_day_hourly_gen_vs_irradiance(gen_weather_merged_df)
+    with col4:
+        st.markdown("""
+**Hourly Actual vs. Predicted Generation (last day selected):**
 
+This plots highlights required adjustments to improve accuracy in 
+the next iteration of the ML model:
+
+1) The XGBoost ML model predicts some small generation during hours of 0 irradiance, we
+will adjust to ensure 0 generation during these hours.
+
+2) The interpolation method extends too far when imputing missing actual generation data,
+we will reduce the scope of the interpolation and impute remainder of NaNs with 0s.
+                    """
+        )
     # Or provide pipeline and X_full to compute predictions inside the function:
     # plot_last_day_hourly_gen_vs_irradiance(gen_weather_merged_df, pipeline=pipeline, X_full=X_full)
 
@@ -740,9 +779,11 @@ with tab2:
         top_n = 50
         top_cols = df[gsp_cols].iloc[-1].nlargest(top_n).index.tolist()
         fig = px.line(df.reset_index(), x='install_month', y=top_cols, title="Cumulative capacity over time by GSP (2010 onwards)")
-        fig.update_layout(showlegend=False, height=550)
+        fig.update_layout(showlegend=False, height=550, xaxis_title='Install Month', yaxis_title='MWp')
         return fig
-
+     # LINE PLOT SHOWING CAPACITY GROWTH END
+    
+     #  BAR PLOT SHOWING CAPACITY INSTALLED BY YEAR START
     def make_bar_fig(capacity_growth_all_gsps):
         df = capacity_growth_all_gsps.copy()
         df['install_month'] = pd.to_datetime(df['install_month'])
@@ -768,6 +809,7 @@ with tab2:
         fig.update_traces(marker_color='#FF7A00', texttemplate='%{text:.0f}', textposition='outside')
         fig.update_layout(title='Annual Capacity Increase (MWp)', xaxis=dict(tickmode='linear'), yaxis_title='MWp', height=450)
         return fig
+     #  BAR PLOT SHOWING CAPACITY INSTALLED BY YEAR END
 
     line_fig = make_line_fig(capacity_growth_all_gsps)
     bar_fig  = make_bar_fig(capacity_growth_all_gsps)
@@ -775,11 +817,7 @@ with tab2:
     # Layout: first row -> left placeholder, right line plot
     col1, col2 = st.columns([1,2])  # right column wider
     with col1:
-        st.markdown("""
-  
-
-                    
-**UK Embedded Solar Capacity Over Time:**
+        st.markdown("""**UK Embedded Solar Capacity Over Time:**
 
 Significant growth of solar capacity over the past 15 years was driven
 initially by the Feed-in-Tariff (FiT) subsidy scheme from 2010 to 2015 with later growth marked
