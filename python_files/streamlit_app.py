@@ -132,8 +132,8 @@ try:
 except ValueError as e:
     st.error(str(e))
     st.stop()
-# find gsp_id using get_gsp_id_from_region function for given sidebar GSP_region name selection 
-gsp_id = get_gsp_id_from_region(gsp_locations_list, selected_gsp) # selects chosen GSP for use in the visuals
+# find gsp_id using get_gsp_id_from_region function for given sidebar GSP_region selection 
+gsp_id = get_gsp_id_from_region(gsp_locations_list, selected_gsp)
 
 # Initiating PVLive API as per GIT repo instructions: https://github.com/SheffieldSolar/PV_Live-API
 pvl = PVLive(
@@ -439,31 +439,6 @@ with tab1:
     st.markdown("---")
     last_row = capacity_growth_all_gsps.iloc[-1]  # Last row values
 
-    # MAP OF CAPACITY INSTALLED START
-    # Create a Capacity DataFrame where each GSP gets the last capacity values.
-    latest_capacity_dict = {
-        'GSPs': gsp_locations_list['GSPs'],  # GSP identifiers
-        'Latest Installed Capacity (MW)': [last_row[gsp] for gsp in gsp_locations_list['GSPs']]  # GSPs must match column names
-    }
-    latest_capacity_df = pd.DataFrame(latest_capacity_dict)
-    gsp_locations_with_capacity = gsp_locations_list.merge(latest_capacity_df, on='GSPs', how='left')
-
-    # Create a scatter map with sizes based on Latest Installed Capacity
-    fig = px.scatter_map(
-        gsp_locations_with_capacity,
-        lat="gsp_lat",
-        lon="gsp_lon",
-        hover_name="region_name",  # Show region name on hover
-        size="Latest Installed Capacity (MW)",  # Scale point size based on this capacity
-        size_max=20,  # Max size for points
-        title="GSP Locations with Latest Installed Capacity",
-        map_style="open-street-map"
-    )
-
-    # Show the figure in Streamlit
-    st.plotly_chart(fig)
-    # MAP OF CAPACITY INSTALLED START
-
     # FULL SOLAR PLOT START 
     # create generation prediction values
     X_full = pd.concat([X_train, X_test]).sort_index() # Combine X_train and X_test to predict for the whole dataset
@@ -499,7 +474,7 @@ with tab1:
 
     # Layout with secondary y-axis
     fig.update_layout(
-        title="Solar Generation and Radiation Over Time (Actual vs Predicted)",
+        title="Predicted Solar Generation Vs. Actual)",
         xaxis_title='Date and Time',
         yaxis_title='Radiation Values',
         yaxis2=dict(
@@ -518,8 +493,7 @@ with tab1:
 
     # METRICS TABLE START
 
-    # Actual generation vs. predicted gernation for gsp in selected period
-    # variables metrics
+    # Actual generation vs. predicted generation for gsp in selected period
     
     gen_series = pd.to_numeric(gen_weather_merged_df['generation_mw'], errors='coerce')
     total_generation_mw = float(gen_series.sum())
@@ -544,6 +518,156 @@ with tab1:
         st.dataframe(generation_and_capacity_single_gsp)
 
     # METRICS END
+
+    # MONTH SOLAR PLOT
+    # align into gen_weather_merged_df
+    gen_weather_merged_df['pred_generation_mw'] = np.nan
+    gen_weather_merged_df.loc[X_full.index, 'pred_generation_mw'] = y_pred_full
+
+    def plot_last_month_clustered_gen_vs_irradiance(df, pipeline=None, X_full=None):
+        df = df.copy()
+        df.index = pd.to_datetime(df.index)
+
+        # ensure predicted column exists: if not, and pipeline+X_full provided, compute predictions
+        if 'pred_generation_mw' not in df.columns:
+            if pipeline is None or X_full is None:
+                raise ValueError("pred_generation_mw missing; provide pipeline and X_full to compute predictions.")
+            # predict and align
+            y_pred_full = pipeline.predict(X_full)
+            pred_series = pd.Series(np.nan, index=df.index)
+            pred_series.loc[X_full.index] = y_pred_full
+            df['pred_generation_mw'] = pred_series
+
+        # select last month
+        last_ts = df.index.max()
+        last_year, last_month = last_ts.year, last_ts.month
+        df_month = df[(df.index.year == last_year) & (df.index.month == last_month)]
+
+        # daily aggregates
+        daily_actual = df_month['generation_mw'].resample('D').sum()
+        daily_pred = df_month['pred_generation_mw'].resample('D').sum()
+        daily_irr = df_month['global_tilted_irradiance_instant'].resample('D').mean()
+
+        plot_df = pd.DataFrame({
+            'date': daily_actual.index,
+            'actual_generation_mw': daily_actual.values,
+            'pred_generation_mw': daily_pred.values,
+            'global_tilted_irradiance_instant': daily_irr.values
+        })
+
+        # clustered bars + line
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=plot_df['date'],
+            y=plot_df['actual_generation_mw'],
+            name='Actual Generation',
+            marker_color='#1f77b4'
+        ))
+        fig.add_trace(go.Bar(
+            x=plot_df['date'],
+            y=plot_df['pred_generation_mw'],
+            name='Predicted Generation',
+            marker_color='#FF7A00'
+        ))
+        fig.add_trace(go.Scatter(
+            x=plot_df['date'],
+            y=plot_df['global_tilted_irradiance_instant'],
+            name='Global Tilted Irradiance (instant)',
+            mode='lines+markers',
+            marker=dict(color='lightgray'),
+            yaxis='y2'
+        ))
+
+        fig.update_layout(
+            barmode='group',
+            title=f"Daily Actual vs Predicted Generation and Irradiance — {last_year}-{last_month:02d}",
+            xaxis=dict(title='Date'),
+            yaxis=dict(title='Daily Generation (MW total)'),
+            yaxis2=dict(title='Irradiance (W/m²)', overlaying='y', side='right', showgrid=False),
+            legend=dict(x=0.01, y=0.99),
+            height=520
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Usage:
+    plot_last_month_clustered_gen_vs_irradiance(gen_weather_merged_df)
+    # PRIOR MONTH SOLAR PLOT END
+
+    def plot_last_day_hourly_gen_vs_irradiance(df, pipeline=None, X_full=None):
+        df = df.copy()
+        df.index = pd.to_datetime(df.index)
+
+        # ensure pred column exists or compute from pipeline+X_full
+        if 'pred_generation_mw' not in df.columns:
+            if pipeline is None or X_full is None:
+                raise ValueError("pred_generation_mw missing; provide pipeline and X_full to compute predictions.")
+            y_pred_full = pipeline.predict(X_full)
+            pred_series = pd.Series(np.nan, index=df.index)
+            pred_series.loc[X_full.index] = y_pred_full
+            df['pred_generation_mw'] = pred_series
+
+        # select last day present in dataframe
+        last_ts = df.index.max()
+        last_day = last_ts.date()
+        df_day = df[df.index.date == last_day]
+
+        # if no rows for last_day, try previous day
+        if df_day.empty:
+            last_day = (last_ts - pd.Timedelta(days=1)).date()
+            df_day = df[df.index.date == last_day]
+
+        # aggregate hourly (if already hourly, this keeps per-hour values)
+        hourly_actual = df_day['generation_mw'].resample('H').sum()
+        hourly_pred = df_day['pred_generation_mw'].resample('H').sum()
+        hourly_irr = df_day['global_tilted_irradiance_instant'].resample('H').mean()
+
+        plot_df = pd.DataFrame({
+            'hour': hourly_actual.index,
+            'actual_generation_mw': hourly_actual.values,
+            'pred_generation_mw': hourly_pred.values,
+            'global_tilted_irradiance_instant': hourly_irr.values
+        })
+
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=plot_df['hour'],
+            y=plot_df['actual_generation_mw'],
+            name='Actual Generation',
+            marker_color='#1f77b4'
+        ))
+        fig.add_trace(go.Bar(
+            x=plot_df['hour'],
+            y=plot_df['pred_generation_mw'],
+            name='Predicted Generation',
+            marker_color='#FF7A00'
+        ))
+        fig.add_trace(go.Scatter(
+            x=plot_df['hour'],
+            y=plot_df['global_tilted_irradiance_instant'],
+            name='Global Tilted Irradiance (instant)',
+            mode='lines+markers',
+            marker=dict(color='lightgray'),
+            yaxis='y2'
+        ))
+
+        fig.update_layout(
+            barmode='group',
+            title=f"Hourly Actual vs Predicted Generation and Irradiance — {last_day}",
+            xaxis=dict(title='Hour', tickformat='%H:%M'),
+            yaxis=dict(title='Generation (MW)'),
+            yaxis2=dict(title='Irradiance (W/m²)', overlaying='y', side='right', showgrid=False),
+            legend=dict(x=0.01, y=0.99),
+            height=520
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    plot_last_day_hourly_gen_vs_irradiance(gen_weather_merged_df)
+
+    # Or provide pipeline and X_full to compute predictions inside the function:
+    # plot_last_day_hourly_gen_vs_irradiance(gen_weather_merged_df, pipeline=pipeline, X_full=X_full)
+
 
     # HEATMAP START
 
@@ -578,7 +702,110 @@ with tab2:
 
     st.subheader("Selected GSP Stats")
 
+    # MAP OF CAPACITY INSTALLED START
+    # Create a Capacity DataFrame where each GSP gets the last capacity values.
+    latest_capacity_dict = {
+        'GSPs': gsp_locations_list['GSPs'],  # GSP identifiers
+        'Latest Installed Capacity (MW)': [last_row[gsp] for gsp in gsp_locations_list['GSPs']]  # GSPs must match column names
+    }
+    latest_capacity_df = pd.DataFrame(latest_capacity_dict)
+    gsp_locations_with_capacity = gsp_locations_list.merge(latest_capacity_df, on='GSPs', how='left')
 
+    # Create a scatter map with sizes based on Latest Installed Capacity
+    fig = px.scatter_map(
+        gsp_locations_with_capacity,
+        lat="gsp_lat",
+        lon="gsp_lon",
+        hover_name="region_name",  # Show region name on hover
+        size="Latest Installed Capacity (MW)",  # Scale point size based on this capacity
+        size_max=20,  # Max size for points
+        title="GSP Locations with Latest Installed Solar Capacity (MWp)",
+        map_style="open-street-map",
+        hover_data={"Latest Installed Capacity (MW)": ":.0f"}  # format as integer
+    )
+
+    # Show the figure in Streamlit
+    st.plotly_chart(fig)
+    # MAP OF CAPACITY INSTALLED END
+
+    # LINE PLOT SHOWING CAPACITY GROWTH START 
+    # Example: create line_fig and bar_fig using your helper functions (replace with your actual code)
+    def make_line_fig(capacity_growth_all_gsps):
+        df = capacity_growth_all_gsps.copy()
+        df['install_month'] = pd.to_datetime(df['install_month'])
+        df = df.set_index('install_month').sort_index()
+        df = df.loc[df.index >= pd.Timestamp("2010-01-01")]
+        gsp_cols = [c for c in df.columns if c != 'install_month']
+        # limit to top N to keep plot readable
+        top_n = 50
+        top_cols = df[gsp_cols].iloc[-1].nlargest(top_n).index.tolist()
+        fig = px.line(df.reset_index(), x='install_month', y=top_cols, title="Cumulative capacity over time by GSP (2010 onwards)")
+        fig.update_layout(showlegend=False, height=550)
+        return fig
+
+    def make_bar_fig(capacity_growth_all_gsps):
+        df = capacity_growth_all_gsps.copy()
+        df['install_month'] = pd.to_datetime(df['install_month'])
+        df = df.set_index('install_month').sort_index()
+        df = df.loc[df.index >= pd.Timestamp("2009-01-01")]
+        gsp_cols = [c for c in df.columns if c != 'install_month']
+        annual_cumul = df[gsp_cols].resample('Y').last()
+        annual_total = annual_cumul.sum(axis=1)
+        annual_increase = annual_total.diff().fillna(0)
+        plot_df = pd.DataFrame({
+            'year': annual_increase.index.year,
+            'annual_increase_mwp': annual_increase.values,
+            'total_capacity_mwp': annual_total.values
+        })
+        fig = px.bar(
+            plot_df,
+            x='year',
+            y='annual_increase_mwp',
+            labels={'annual_increase_mwp': 'Capacity increase (MWp)', 'year': 'Year'},
+            text='annual_increase_mwp',
+            hover_data={'annual_increase_mwp': ':.0f', 'total_capacity_mwp': ':.0f'}
+        )
+        fig.update_traces(marker_color='#FF7A00', texttemplate='%{text:.0f}', textposition='outside')
+        fig.update_layout(title='Annual Capacity Increase (MWp)', xaxis=dict(tickmode='linear'), yaxis_title='MWp', height=450)
+        return fig
+
+    line_fig = make_line_fig(capacity_growth_all_gsps)
+    bar_fig  = make_bar_fig(capacity_growth_all_gsps)
+
+    # Layout: first row -> left placeholder, right line plot
+    col1, col2 = st.columns([1,2])  # right column wider
+    with col1:
+        st.markdown("""
+  
+
+                    
+**UK Embedded Solar Capacity Over Time:**
+
+Significant growth of solar capacity over the past 15 years was driven
+initially by the Feed-in-Tariff (FiT) subsidy scheme from 2010 to 2015 with later growth marked
+by the reducing cost of building and maintaining solar, making it now
+one of the cheapest forms of producing electricity. The latest challenge faced by the industry
+is now caused by an over-congested UK electricity grid network. Particularly for larger installations which are stuggling to find capacity on a network which
+was initially designed to operate with a few large-scale base-load turbines connected to
+Transmission Networks, not at Distribution level (i.e, embedded))
+""")
+    with col2:
+        st.plotly_chart(line_fig, use_container_width=True)
+
+    # Second row -> left bar plot, right placeholder
+    col3, col4 = st.columns([2,1])  # left wider this row
+    with col3:
+        st.plotly_chart(bar_fig, use_container_width=True)
+    with col4:
+        st.markdown("""**Bar Graph Showing New Installed Solar Capacity by Year:**
+
+Major capacity gains were initially seen in 2011 following the launch of the FiT scheme (2010)
+with a slight reduction in 2012 caused by reducing FiT support rates, but further growth (up to 2015) seen
+as economies of scale drove down manufacturing costs marking viability for larger projects supported by the Renewable
+Obligation Certification (ROC). ROCs, however, were subsequently restricted to only new solar projects below 5MW in 2015. From 2020 onwards capacity growth is
+purely subsidy-free given the complete closure of the FiT and ROC schemes for all new solar in 2019 and 2017, respectively.
+                    """
+        )
 
 #=============================================================================================
 # Tab 2 END
