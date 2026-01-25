@@ -438,7 +438,7 @@ with tab1:
     # Show Results of Selected GSP
     gsp_region = gsp_locations_list[gsp_locations_list['gsp_id'].astype(int) == int(gsp_id)].iloc[0]['GSP_region']
     st.subheader(f"{gsp_region} GSP: {start_date} - {end_date}")
-    st.markdown("---")
+    st.info(" Select your GSP and date range to train the model, predict and visualise your data below")
     last_row = capacity_growth_all_gsps.iloc[-1]  # Last row values
 
     # FULL SOLAR PLOT START 
@@ -492,7 +492,7 @@ with tab1:
 
     st.plotly_chart(fig) # show fig
     # FULL SOLAR PLOT END
-
+    st.info("Use the slider bar above to view granluar data periods")
     # METRICS TABLE START
 
     # Actual generation vs. predicted generation for gsp in selected period
@@ -582,7 +582,7 @@ with tab1:
 
         fig.update_layout(
             barmode='group',
-            title=f"Daily Actual vs Predicted Generation and Irradiance — {last_year}-{last_month:02d}",
+            title=f"Daily Generation and Irradiance Profile — {last_year}-{last_month:02d}",
             xaxis=dict(title='Date'),
             yaxis=dict(title='Daily Generation (MW total)'),
             yaxis2=dict(title='Irradiance (W/m²)', overlaying='y', side='right', showgrid=False),
@@ -597,11 +597,11 @@ with tab1:
         # Layout: first row -> left placeholder, right line plot
     col1, col2 = st.columns([1,2])  # right column wider
     with col1:
-        st.markdown("""                 
+        st.markdown("""\n\n
+               
 **Daily Solar Generation vs. Predictions (last month selected):**
 
-Highlighting the variance between the actual GSP's solar generation and our model's
-predicted generation. We note predictions tend to track irradiance more closely
+ We note predictions tend to track irradiance more closely
 than actual generation. Reasons may include: 
 
 1) predictions are based on a single location (and weather conditions) at the GSP, 
@@ -675,7 +675,7 @@ and/or localised plant faults.
 
         fig.update_layout(
             barmode='group',
-            title=f"Hourly Actual vs Predicted Generation and Irradiance — {last_day}",
+            title=f"Hourly Generation and Irradiance Profile — {last_day}",
             xaxis=dict(title='Hour', tickformat='%H:%M'),
             yaxis=dict(title='Generation (MW)'),
             yaxis2=dict(title='Irradiance (W/m²)', overlaying='y', side='right', showgrid=False),
@@ -694,7 +694,7 @@ and/or localised plant faults.
         st.markdown("""
 **Hourly Actual vs. Predicted Generation (last day selected):**
 
-This plots highlights required adjustments to improve accuracy in 
+This plot highlights required adjustments to improve accuracy in 
 the next iteration of the ML model:
 
 1) The XGBoost ML model predicts some small generation during hours of 0 irradiance, we
@@ -721,7 +721,7 @@ we will reduce the scope of the interpolation and impute remainder of NaNs with 
                             y='difference',
                             z='difference',
                             color_continuous_scale='RdBu',
-                            title='Heatmap of Differences (Predicted - Actual)')
+                            title='Heatmap of Differences (Predicted vs. Actual Generation)')
 
     fig.update_layout(
         xaxis_title='Date and Time',
@@ -730,6 +730,14 @@ we will reduce the scope of the interpolation and impute remainder of NaNs with 
     )
 
     st.plotly_chart(fig)
+    
+    st.markdown("""**Heatmap Analysis:**
+
+The Heatmap shows the model becomes increasingly inaccurate over time as the solar capacity increases. We suspect
+this is likely due to an incorrect weighting of the cumulative capacity feature in the dataset.
+Solution: heavily weight the GSPs solar capacity feature when fine-tuning of the next iteration of the ML model
+
+""")
     # HEATMAP END
 
 #=============================================================================================
