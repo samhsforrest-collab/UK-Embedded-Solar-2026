@@ -35,7 +35,7 @@ ___
 ___
 
 # Dashboard Deployment and Usage
-Access the [Dashboard](https://uk-embedded-solar-generation-2.streamlit.app/) here
+Access the [Dashboard](https://uk-embedded-solar-generation.onrender.com/) here
 
 - Select your chosen GSP and date range on the sidebar to train the model, predict and visualise your data below
 - Interact with Plotly Graphs using buttons in top right corner of each for zoom and pan
