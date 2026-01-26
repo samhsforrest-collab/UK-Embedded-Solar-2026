@@ -14,7 +14,7 @@ ___
   - Historic solar generation (MWh) via PVLive generation endpoint.
 
 - GSP location lookup:
-  - GSP geo-locations are sourced from the NESO website CSV and matched to PVLive GSP IDs.
+  - GSP geo-locations are sourced from the [NESO](https://www.neso.energy/data-portal/gis-boundaries-gb-grid-supply-points) website CSV and matched to PVLive GSP IDs.
 
 - Weather data:
   - Localised hourly historical weather/irradiance is retrieved from Open-Meteo Historical API (queried using the selected GSP's lat/lon).
