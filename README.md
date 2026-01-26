@@ -5,7 +5,7 @@ UK Embedded Solar Generation is a data analysis tool extracting data from the Sh
 # Business Objectives
 
 - Assess whether we can extract, clean, visualise, and accurately forecast embedded solar generation at GSP level across the UK to meet NESO’s balancing market (BM) requirements.
-- Improve UK electricity network operating efficiency by improving accuracy and reducing safety-buffer/redundancy in decision-making to unlock cost savings that are passed through to UK electricity consumers.
+- Improve UK electricity network operating efficiency by improving accuracy and reducing safety-buffer/redundancy in NESO's decision-making to unlock cost savings that are passed through to UK electricity consumers.
 ___
 
 # Hypothesis
