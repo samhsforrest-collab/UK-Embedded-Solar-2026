@@ -95,6 +95,16 @@ ___
 - Incorporate additional weather parameters (humidity, wind, temperature).  
 - Engage Sheffield Solar API team to investigate access to unique solar project locations.
 
+# Development Roadmap & Main Challenges
+
+The complete data extraction and EDA journey can be found in the Jupyter notebook files which should be read in this order:
+
+1. workings_pvlive_api_mwp_gsp_mapping_functions_1.ipynb
+2. workings_pvlive_api_generation_mwp_functions_2.ipynb
+3. workings_openmeteo_weather_api_and_pvlive_functions_3.ipynb
+4. workings_openmeteo_and_pvlive_continued_4.ipynb
+5. workings_ml_predictions_functions_5.ipynb
+
 # Credits
 
 This project uses teaching materials from the **Code Institute – Data Analytics with AI Bootcamp**, which supported:
@@ -112,4 +122,5 @@ Chat GPT and Copilot were used as code assistants for:
 - Converting writen Readme into code format
 - Explaining complex logic within API endpoints and other complex
 
-
+[Open meteo API](https://open-meteo.com/en/docs/historical-weather-api)
+[Sheffield Solar API Github](https://github.com/SheffieldSolar/PV_Live-API)
