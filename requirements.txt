@@ -11,11 +11,13 @@ h11==0.16.0
 ipython==9.9.0
 ipywidgets==8.1.8
 keyring==25.6.0
-matplotlib==3.10.8
-numpy==1.23.0  # Ensure compatibility, adjust if necessary
+matplotlib==3.10.7
+numpy==2.3.5
 openmeteo_requests==1.7.5
+openmeteo_sdk==1.25.0
 pandas==2.3.3
 plotly==6.5.0
+pvlive_api==1.5.2
 requests==2.31.0
 requests-cache==1.2.1
 retry-requests==2.0.0
