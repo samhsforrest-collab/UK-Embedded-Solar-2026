@@ -1,11 +1,11 @@
 # UK Embedded Solar Generation
 
-UK Embedded Solar Generation is a data analysis tool exyracting data from the Sheffield Solar PVLive API and Open meteo historical weather API to data from 290 Grid Supply Points (GSP) across the UK and evaluate solar generation at each GSP over a 5 year period to an hourly granularity. It trains a machine learning model to predict the hourly solar generaiton profile at any selected GSP (from the list of 290) based on local weather conditions.
+UK Embedded Solar Generation is a data analysis tool extracting data from the Sheffield Solar PVLive API and Open meteo historical weather API to data from 290 Grid Supply Points (GSP) across the UK and evaluate solar generation at each GSP over a 5 year period to an hourly granularity. It trains a machine learning model to predict the hourly solar generaiton profile at any selected GSP (from the list of 290) based on local weather conditions.
 
 # Business Objectives
 
 - Assess whether we can extract, clean, visualise, and accurately forecast embedded solar generation at GSP level across the UK to meet NESO’s balancing market (BM) requirements.
-- Improve UK electricity network operating efficiency by improving accuracy and reducing safety-buffer/redundancy in decision-making to unlock cost savings that are passed through to UK electricity consumers.
+- Improve UK electricity network operating efficiency by improving accuracy and reducing safety-buffer/redundancy in NESO's decision-making to unlock cost savings that are passed through to UK electricity consumers.
 ___
 
 # Hypothesis
