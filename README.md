@@ -5,12 +5,12 @@ UK Embedded Solar Generation is a data analysis tool exyracting data from the Sh
 # Business Objectives
 
 - Assess whether we can extract, clean, visualise, and accurately forecast embedded solar generation at GSP level across the UK to meet NESO’s balancing market (BM) requirements.
-- Improve network operating efficiency by improving accuracy and reducing safety buffer/redundancy in decision-making to unlock cost savings that are passed through to UK electricity consumers.
-- 
+- Improve UK electricity network operating efficiency by improving accuracy and reducing safety-buffer/redundancy in decision-making to unlock cost savings that are passed through to UK electricity consumers.
 ___
+
 # Hypothesis
 - Can we extract, clean, visualise, and forecast the embedded solar generation for GSPs in the UK with sufficient accuracy to support NESO’s instructions in the BM?
-- To validate this we are aiming for a 95% explained variance in the model testing (R2)
+- For validation we are aiming for a 95% explained variance in the model testing (R2)
 
 # Datasets - The APIs
 
@@ -30,14 +30,15 @@ ___
   2. Match PVLive GSP IDs to NESO-provided geo-location metadata.
   3. Use selected GSP lat/lon to request hourly weather from Open-Meteo.
   4. Merge and align generation, capacity and weather time series.
-  5. Train, fit and predict with a machine learning model using the combined solar + weather feature set. 
+  5. Train, fit and predict with a machine learning model using the combined solar + weather feature set.
+  6. Present prediciton results and visualisations for selected GSPs on the Dashboard
 ___
 
 # Dashboard Deployment and Usage
 Access the [Dashboard](https://uk-embedded-solar-generation-esmkfgpqjmccxirsh9tgcu.streamlit.app/) here
 
 - Select your chosen GSP and date range on the sidebar to train the model, predict and visualise your data below
-- Interact with Plotly Graphs using buttons in top right corner of each to zoom and pan
+- Interact with Plotly Graphs using buttons in top right corner of each for zoom and pan
 - Dowload generation and capacity data for selected GSP using the dropdown 'Show generation and capacity data' and clicking the download button in the top right hand corner
 - Navigate to the second tab to explore the GSP embedded solar map and the history of solar deployment across the UK
 ___
@@ -94,22 +95,22 @@ ___
 # Conclusion: further refinement is required to accurately support NESO’s BM actions
 
 ## Successes
-- 290 GSPs extracted, cleaned and aligned with weather data.  
-- ~17 GWp of solar capacity data available for evaluation.  
-- 5 years of historical weather and solar data (17GWp) available for each of the 290 GSPs' locations.  
-- 5 ML models trained and tested; winning model achieved ~80% explained variance (R²).
+- 290 x GSPs extracted, cleaned and aligned with weather data.  
+- ~17 x GWp of solar capacity data available for evaluation.  
+- 5 x years of historical weather and solar data (17GWp) available for each of the 290 GSPs' locations.  
+- 5 x scikit learn machine learning regression models were trained, tested and tuned; winning model XGBoost achieved ~80% explained variance (R²).
 
 ## Data cleaning adjustments
-- Reduce interpolation window for generation to avoid skewed profiles; impute remaining NaNs with zeros.  
-- Add more comments and tidy Python files for maintainability.  
+- Reduce interpolation window for generation (from 12) to avoid skewed profiles; impute remaining NaNs with zeros.  
+- Add more comments to code and tidy Python files for maintainability and visibility.  
 - Refactor Streamlit app functions to remove interdependencies so they can be moved to functions.py and used with date/GSP sidebar selectors without circular references.
 
 ## Model refinements and bug fixes
-- Re-tune XGBoost to increase weight on capacity features and account for MWp growth over time.  
+- Re-tune XGBoost to increase weight on capacity feature and account for MWp growth over time.  
 - Retrain models to ensure predicted generation is zero during hours of zero irradiance.
 - Retrain the model to explore why there appears to be a cap on the predicted solar generation (first page first visual)
 - Incorporate additional weather parameters (humidity, wind, temperature).  
-- Engage Sheffield Solar API team to investigate access to unique solar project locations.
+- Engage Sheffield Solar API team to investigate availability of unique solar project locations and capacities.
 ___
 
 # Development Roadmap & Main Challenges
