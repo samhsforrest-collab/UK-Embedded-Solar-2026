@@ -2,7 +2,9 @@
 
 - Assess whether we can extract, clean, visualise, and accurately forecast embedded solar generation at GSP level across the UK to meet NESO’s balancing market (BM) requirements.
 - Improve network operating efficiency by improving accuracy and reducing safety buffer/redundancy in decision-making to unlock cost savings that are passed through to UK electricity consumers.
-
+- 
+### Dashboard Link
+[Dashboard](https://uk-embedded-solar-generation-esmkfgpqjmccxirsh9tgcu.streamlit.app/)
 ___
 
 # APIs
@@ -22,8 +24,7 @@ ___
   2. Match PVLive GSP IDs to NESO-provided geo-location metadata.
   3. Use selected GSP lat/lon to request hourly weather from Open-Meteo.
   4. Merge and align generation, capacity and weather time series.
-  5. Train, fit and predict with a machine learning model using the combined solar + weather feature set.
-  6. 
+  5. Train, fit and predict with a machine learning model using the combined solar + weather feature set. 
 ___
 
 # Main Functions and Feature Engineering
@@ -93,4 +94,22 @@ ___
 - Retrain models to ensure predicted generation is zero during hours of zero irradiance.  
 - Incorporate additional weather parameters (humidity, wind, temperature).  
 - Engage Sheffield Solar API team to investigate access to unique solar project locations.
+
+# Credits
+
+This project uses teaching materials from the **Code Institute – Data Analytics with AI Bootcamp**, which supported:
+
+- Data cleaning  
+- Feature engineering  
+- Exploratory analysis
+- Machine learning model scoring code blocks
+- Visualisations
+
+Chat GPT and Copilot were used as code assistants for:
+- Helping to writing short code blocks
+- Troubleshooting code problems
+- Checking overall logic and bouncing ideas off
+- Converting writen Readme into code format
+- Explaining complex logic within API endpoints and other complex
+
 
