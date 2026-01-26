@@ -65,8 +65,8 @@ def get_base64_image(image_path):
         return base64.b64encode(img_file.read()).decode()
 
 banner_b64 = get_base64_image("assets/solar-image2.jpg")
-st.image("assets/solar-image2.jpg", use_container_width =True)
-st.sidebar.image("assets/logo.png", use_container_width=True)
+st.image("assets/solar-image2.jpg", width='stretch')
+st.sidebar.image("assets/logo.png", width='stretch')
 
 st.set_page_config(page_title="Embedded Solar", page_icon="☀️", layout="wide")
 
@@ -590,7 +590,7 @@ with tab1:
             height=520
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
     # Usage:
     
@@ -640,9 +640,9 @@ and/or localised plant faults.
             df_day = df[df.index.date == last_day]
 
         # aggregate hourly (if already hourly, this keeps per-hour values)
-        hourly_actual = df_day['generation_mw'].resample('H').sum()
-        hourly_pred = df_day['pred_generation_mw'].resample('H').sum()
-        hourly_irr = df_day['global_tilted_irradiance_instant'].resample('H').mean()
+        hourly_actual = df_day['generation_mw'].resample('h').sum()
+        hourly_pred = df_day['pred_generation_mw'].resample('h').sum()
+        hourly_irr = df_day['global_tilted_irradiance_instant'].resample('h').mean()
 
         plot_df = pd.DataFrame({
             'hour': hourly_actual.index,
@@ -683,7 +683,7 @@ and/or localised plant faults.
             height=520
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
     
     # Second row -> left bar plot, right placeholder
@@ -843,12 +843,12 @@ was initially designed to operate with a few large-scale base-load turbines conn
 Transmission Networks, not at Distribution level (i.e, embedded))
 """)
     with col2:
-        st.plotly_chart(line_fig, use_container_width=True)
+        st.plotly_chart(line_fig, width='stretch')
 
     # Second row -> left bar plot, right placeholder
     col3, col4 = st.columns([2,1])  # left wider this row
     with col3:
-        st.plotly_chart(bar_fig, use_container_width=True)
+        st.plotly_chart(bar_fig, width='stretch')
     with col4:
         st.markdown("""**Bar Graph Showing New Installed Solar Capacity by Year:**
 
