@@ -35,7 +35,7 @@ def load_mwp(region="gsp", include_history=True):
     
 mwp_df = load_mwp() # loading the capacity df
 
-def load_gsp(gsp_path="python_files/data/gsp_info.csv"):
+def load_gsp(gsp_path="data/gsp_info.csv"):
     """
     Load and return the GSP info dataframe as gsp_df from CSV,
     filtered to only GSPs known to PVLive (pvl.gsp_ids).

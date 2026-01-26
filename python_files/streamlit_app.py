@@ -64,9 +64,9 @@ def get_base64_image(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
 
-banner_b64 = get_base64_image("python_files/assets/solar-image2.jpg")
-st.image("python_files/assets/solar-image2.jpg", use_container_width =True)
-st.sidebar.image("python_files/assets/logo.png", use_container_width=True)
+banner_b64 = get_base64_image("assets/solar-image2.jpg")
+st.image("assets/solar-image2.jpg", use_container_width =True)
+st.sidebar.image("assets/logo.png", use_container_width=True)
 
 st.set_page_config(page_title="Embedded Solar", page_icon="☀️", layout="wide")
 
