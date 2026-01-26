@@ -80,8 +80,8 @@ ___
 
 ## Successes
 - 290 GSPs extracted, cleaned and aligned with weather data.  
-- ~17 GWp of solar capacity available for evaluation.  
-- 5 years of historical weather and solar data available for analysis.  
+- ~17 GWp of solar capacity data available for evaluation.  
+- 5 years of historical weather and solar data (17GWp) available for each of the 290 GSPs' locations.  
 - 5 ML models trained and tested; winning model achieved ~80% explained variance (R²).
 
 ## Data cleaning adjustments
