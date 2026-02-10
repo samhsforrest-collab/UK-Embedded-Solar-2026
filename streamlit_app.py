@@ -422,6 +422,55 @@ def prepare_and_fit_xgboost(df, target_col='generation_mw', test_size=0.2, rando
 # Create variables from the XGBoost model
 pipeline, X_train, X_test, y_train, y_test = prepare_and_fit_xgboost(gen_weather_merged_df)
 
+@st.cache_resource
+def cached_train(df, target_col='generation_mw', test_size=0.2, random_state=101):
+    return prepare_and_fit_xgboost(df, target_col=target_col, test_size=test_size, random_state=random_state)
+
+# Clear cached model helper (optional button to retrain)
+if st.sidebar.button("Retrain (clear cache)"):
+    try:
+        st.cache_resource.clear()
+    except Exception:
+        # fallback for older streamlit versions
+        st.session_state.pop("trained_model", None)
+    st.experimental_rerun()
+
+# Train only when button pressed
+if "trained_model" not in st.session_state:
+    if st.button("Train model"):
+        with st.spinner("Training model..."):
+            pipeline, X_train, X_test, y_train, y_test = cached_train(gen_weather_merged_df)
+            st.session_state["trained_model"] = {
+                "pipeline": pipeline,
+                "X_train": X_train,
+                "X_test": X_test,
+                "y_train": y_train,
+                "y_test": y_test,
+            }
+            st.success("Model trained.")
+else:
+    # model already trained (from cache/session)
+    stored = st.session_state["trained_model"]
+    pipeline = stored["pipeline"]
+    X_train = stored["X_train"]
+    X_test = stored["X_test"]
+    y_train = stored["y_train"]
+    y_test = stored["y_test"]
+
+# Only run predictions/plot if pipeline exists
+if "pipeline" in locals():
+    X_full = pd.concat([X_train, X_test]).sort_index()
+    y_index = X_full.index
+    y_pred_full = pipeline.predict(X_full)
+
+    df_plot = gen_weather_merged_df.copy()
+    df_plot['datetime_gmt'] = pd.to_datetime(df_plot.index)
+    df_plot['pred_generation_mw'] = np.nan
+    df_plot.loc[y_index, 'pred_generation_mw'] = y_pred_full
+
+    # ... (plotting code unchanged)
+
+
 #=============================================================================================
 # CREATE MAIN DATAFRAMES - FEATURE ENGINEERING - END
 

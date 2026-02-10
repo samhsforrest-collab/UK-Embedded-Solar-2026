@@ -16,7 +16,10 @@ from datetime import datetime
 import time
 from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
-
+import streamlit as st
+from io import BytesIO
+from typing import Optional
+from pvlive_api import PVLive
 
 # Initiating PVLive API as per GIT repo instructions: https://github.com/SheffieldSolar/PV_Live-API
 pvl = PVLive(
@@ -26,14 +29,79 @@ pvl = PVLive(
     domain_url="api.pvlive.uk", # Optionally switch between the prod and FOF APIs
 )
 
-def load_mwp(region="gsp", include_history=True):
+def load_mwp(pvl: Optional[PVLive] = None,
+               region: str = "gsp",
+               include_history: bool = True,
+               by_system_size: bool = False) -> pd.DataFrame:
     """
-    Load and return the MWp deployment dataframe as mwp_df via pvl.deployment.
+    Return MWp deployment DataFrame by scanning available PVLive filenames and
+    downloading the best match (more robust than PVLive.deployment when naming changed).
+
+    Parameters
+    - pvl: optional PVLive instance. If None, a new PVLive() will be created.
+    - region: "gsp" or "llsoa".
+    - include_history: include monthly history if True.
+    - by_system_size: include system-size breakdown (only valid for region="gsp").
+
+    Returns:
+    - pd.DataFrame (empty if no match or on error).
     """
-    mwp_df = pvl.deployment(region=region, include_history=include_history)
-    return mwp_df
-    
-mwp_df = load_mwp() # loading the capacity df
+    if pvl is None:
+        pvl = PVLive()
+
+    try:
+        deployment_datasets, releases = pvl._get_deployment_releases()
+    except Exception as e:
+        raise RuntimeError(f"Failed to fetch deployment releases: {e}")
+
+    # Build tokens to look for in filenames
+    region_token = f"{pvl.gsp_boundaries_version}_GSP" if region == "gsp" else region
+    # Fallback: sometimes the filenames embed a different boundaries datestamp (e.g. '20251204_GSP')
+    history_token = "_and_month" if include_history else ""
+    system_size_token = "_and_system_size" if by_system_size else ""
+    target_fragment = f"_capacity_by_{region_token}{history_token}{system_size_token}"
+
+    chosen_release = None
+    chosen_filename = None
+
+    for rel in releases:
+        filenames = list(deployment_datasets.get(rel, {}).keys())
+        # first try flexible containment match using constructed fragment
+        matches = [f for f in filenames if target_fragment in f]
+        # fallback: look for capacity_by entries that contain the region token or region string
+        if not matches:
+            matches = [f for f in filenames if ("_capacity_by_" in f) and (region_token in f or f"_capacity_by_{region}" in f)]
+        # final fallback: any capacity_by for the region
+        if not matches:
+            matches = [f for f in filenames if ("_capacity_by_" in f) and (region in f)]
+        if matches:
+            chosen_release = rel
+            chosen_filename = matches[0]
+            break
+
+    if not chosen_filename:
+        # no match found
+        return pd.DataFrame()
+
+    # Download and parse chosen file
+    try:
+        url = deployment_datasets[chosen_release][chosen_filename]
+        response = pvl._fetch_url(url, parse_json=False)
+        mock_file = BytesIO(response.content)
+        kwargs = dict(parse_dates=["install_month"]) if include_history else {}
+        df = pd.read_csv(mock_file, compression={"method": "gzip"}, **kwargs)
+        df.insert(0, "release", chosen_release)
+        if "dc_capacity_MWp" in df.columns:
+            df.rename(columns={"dc_capacity_MWp": "dc_capacity_mwp"}, inplace=True)
+        if "system_count" in df.columns:
+            df.system_count = df.system_count.astype("Int64")
+        df.dropna(how="any", inplace=True)
+        return df
+    except Exception as e:
+        raise RuntimeError(f"Failed to download/parse PVLive file '{chosen_filename}': {e}")
+
+
+mwp_df = load_mwp()
 
 def load_gsp(gsp_path="data/gsp_info.csv"):
     """
